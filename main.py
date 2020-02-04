@@ -63,31 +63,41 @@ def main():
                 time.sleep(5)
                 if row['select'] == True:
 
+                    try:
+                        perlogin = str(credentials_df.loc[credentials_df.username == credentials_dfrow.username, 'uses'][0])
+                        perlogin = int(perlogin)
+                    except:
+                        perlogin = 0
+
                     if perlogin == 0:
                         driver = start_driver(credentials_dfrow.username, credentials_dfrow.password)
-                    elif perlogin > 100:
-                        perlogin = 0
+                    elif perlogin > 99:
                         break
+
                     row_pending = True
                     while row_pending:
-                        perlogin = str(credentials_df.loc[credentials_df.username == credentials_dfrow.username, 'uses'][0])
-                        try :
-                            perlogin =int(perlogin)
-                        except:
-                            perlogin = 0
 
                         perlogin = perlogin + 1
                         credentials_df.loc[(credentials_df.username == credentials_dfrow.username), 'uses'] = perlogin
                         credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
 
                         lastupdate = credentials_df.loc[credentials_df.username == credentials_dfrow.username, 'lastupdate']
-                        if todaydate!=str(lastupdate[0]):
+                        try :
+                            if todaydate!=str(lastupdate[0]):
+                                credentials_df.loc[
+                                    (credentials_df.username == credentials_dfrow.username), 'lastupdate'] = todaydate
+                                credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
+                                credentials_df.loc[
+                                    (credentials_df.username == credentials_dfrow.username), 'uses'] = 0
+                                credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
+                        except:
                             credentials_df.loc[
                                 (credentials_df.username == credentials_dfrow.username), 'lastupdate'] = todaydate
                             credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
                             credentials_df.loc[
                                 (credentials_df.username == credentials_dfrow.username), 'uses'] = 0
                             credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
+
 
 
                         driver.get(row['url'])
