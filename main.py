@@ -54,22 +54,23 @@ def main():
     df = df[df['select']]
     output_file = '/' + datetime.datetime.now().strftime("%m%d%Y%H%M%S")
     output_file += '_final.csv'
-    todaydate=datetime.datetime.now().strftime("%m/%d/%Y")
+    todaydate = datetime.datetime.now().strftime("%m/%d/%Y")
     credentials_df = pd.read_csv(dir_path + '/credentials.csv')
     for credentials_dfindex, credentials_dfrow in credentials_df.iterrows():
         perlogin = 0
+        newlog=True
         for index, row in df.iterrows():
             try:
                 time.sleep(5)
                 if row['select'] == True:
-
                     try:
                         perlogin = str(credentials_df.loc[credentials_df.username == credentials_dfrow.username, 'uses'][0])
                         perlogin = int(perlogin)
                     except:
                         perlogin = 0
-
-                    if perlogin == 0:
+                    checklogincnt= (perlogin == 0 or (perlogin<100 and newlog==True))
+                    if checklogincnt :
+                        newlog = False
                         driver = start_driver(credentials_dfrow.username, credentials_dfrow.password)
                     elif perlogin > 99:
                         break
@@ -81,9 +82,10 @@ def main():
                         credentials_df.loc[(credentials_df.username == credentials_dfrow.username), 'uses'] = perlogin
                         credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
 
-                        lastupdate = credentials_df.loc[credentials_df.username == credentials_dfrow.username, 'lastupdate']
-                        try :
-                            if todaydate!=str(lastupdate[0]):
+                        lastupdate = credentials_df.loc[
+                            credentials_df.username == credentials_dfrow.username, 'lastupdate']
+                        try:
+                            if todaydate != str(lastupdate[0]):
                                 credentials_df.loc[
                                     (credentials_df.username == credentials_dfrow.username), 'lastupdate'] = todaydate
                                 credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
@@ -91,14 +93,14 @@ def main():
                                     (credentials_df.username == credentials_dfrow.username), 'uses'] = 0
                                 credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
                         except:
-                            credentials_df.loc[
-                                (credentials_df.username == credentials_dfrow.username), 'lastupdate'] = todaydate
-                            credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
-                            credentials_df.loc[
-                                (credentials_df.username == credentials_dfrow.username), 'uses'] = 0
-                            credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
-
-
+                            match = re.search(r'\d{2}/\d{2}/\d{4}', str(lastupdate))
+                            if todaydate != match.group():
+                                credentials_df.loc[
+                                    (credentials_df.username == credentials_dfrow.username), 'lastupdate'] = todaydate
+                                credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
+                                credentials_df.loc[
+                                    (credentials_df.username == credentials_dfrow.username), 'uses'] = 0
+                                credentials_df.to_csv(dir_path + '/credentials.csv', index=False)
 
                         driver.get(row['url'])
                         # check if the zip code is correct
@@ -128,18 +130,17 @@ def main():
 
                         # click Helium10 extension button
                         try:
-                            image = pyautogui.locateOnScreen(dir_path + '/icons/1.png')  # Searches for the image
+                            image = None
+                            for ext in range(7):
+                                image = pyautogui.locateOnScreen(dir_path + '/icons/e' + str(ext+1) + '.png')
+                                if image != None:
+                                    break
+
                             if image == None:
-                                image = pyautogui.locateOnScreen(dir_path + '/icons/1.png')
-                                if image == None:
-                                    image = pyautogui.locateOnScreen(dir_path + '/icons/4.png')
-                                    if image == None:
-                                        image = pyautogui.locateOnScreen(dir_path + '/icons/8.png')
-                                        if image == None:
-                                            df.loc[(df.url == row[
-                                                'url']), 'error'] = "Error in Chrome Extention button click"
-                                            df.to_csv(dir_path + '/selection.csv', index=False)
-                                            break
+                                df.loc[(df.url == row[
+                                    'url']), 'error'] = "Error in Chrome Extention button click"
+                                df.to_csv(dir_path + '/selection.csv', index=False)
+                                break
 
                             buttonhel = pyautogui.center(image)
                             buttonhelx, buttonhely = buttonhel
@@ -155,29 +156,14 @@ def main():
                         max_retries = 5
                         for n_retries in range(max_retries):
                             try:
-                                limitover = None
-                                imageopen = pyautogui.locateOnScreen(
-                                    dir_path + '/icons/2.png')  # Searches for the image
+                                imageopen = None
+                                for xray in range(7):
+                                    imageopen = pyautogui.locateOnScreen(dir_path + '/icons/x' + str(xray+1) + '.png')
+                                    if imageopen != None:
+                                        break
+
                                 if imageopen == None:
-                                    imageopen = pyautogui.locateOnScreen(dir_path + '/icons/2.png')
-                                    if imageopen == None:
-                                        imageopen = pyautogui.locateOnScreen(dir_path + '/icons/5.png')
-                                        if imageopen == None:
-                                            imageopen = pyautogui.locateOnScreen(dir_path + '/icons/7.png')
-                                            if imageopen == None:
-                                                imageopen = pyautogui.locateOnScreen(dir_path + '/icons/x1.png')
-                                                if imageopen == None:
-                                                    imageopen = pyautogui.locateOnScreen(dir_path + '/icons/x2.png')
-                                                    if imageopen == None:
-                                                        imageopen = pyautogui.locateOnScreen(dir_path + '/icons/x3.png')
-                                                        if imageopen == None:
-                                                            imageopen = pyautogui.locateOnScreen(
-                                                                dir_path + '/icons/x4.png')
-                                                            if imageopen == None:
-                                                                imageopen = pyautogui.locateOnScreen(
-                                                                    dir_path + '/icons/x4.png')
-                                                                if imageopen == None:
-                                                                    break
+                                    break
 
                                 buttonopen = pyautogui.center(imageopen)
                                 buttonopenx, buttonopeny = buttonopen
@@ -190,6 +176,7 @@ def main():
                                 df.to_csv(dir_path + '/selection.csv', index=False)
                                 time.sleep(3)
                                 break
+
                         if imageopen == None:
                             df.loc[(df.url == row[
                                 'url']), 'error'] = "Error in Xray- Amazon button click"
@@ -233,24 +220,18 @@ def main():
 
                         # download the items
                         try:
-                            imagedown = pyautogui.locateOnScreen(dir_path + '/icons/3.png')  # Searches for the image
+                            imagedown = None
+                            for dwn in range(7):
+                                imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d' + str(dwn+1) + '.png')
+                                if imagedown != None:
+                                    break
+
                             if imagedown == None:
-                                imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d1.png')
-                                if imagedown == None:
-                                    imagedown = pyautogui.locateOnScreen(dir_path + '/icons/6.png')
-                                    if imagedown == None:
-                                        imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d2.png')
-                                        if imagedown == None:
-                                            imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d3.png')
-                                            if imagedown == None:
-                                                imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d4.png')
-                                                if imagedown == None:
-                                                    imagedown = pyautogui.locateOnScreen(dir_path + '/icons/d5.png')
-                                                    if imagedown == None:
-                                                        df.loc[(df.url == row[
-                                                            'url']), 'error'] = "Error Download button click"
-                                                        df.to_csv(dir_path + '/selection.csv', index=False)
-                                                        break
+                                df.loc[(df.url == row[
+                                    'url']), 'error'] = "Error Download button click"
+                                df.to_csv(dir_path + '/selection.csv', index=False)
+                                break
+
                             buttondown = pyautogui.center(imagedown)
                             buttondownx, buttondowny = buttondown
                             pyautogui.click(buttondownx, buttondowny)
@@ -306,8 +287,6 @@ def main():
                                     break
                         row_pending = False
                         df.loc[(df.url == row['url']), 'select'] = False
-                        df.to_csv(dir_path + '/selection.csv', index=False)
-
                         df.loc[(df.url == row['url']), 'error'] = ""
                         df.to_csv(dir_path + '/selection.csv', index=False)
             except Exception as e:
